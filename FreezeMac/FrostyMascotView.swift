@@ -37,7 +37,7 @@ struct FrostyMascotView: View {
             .scaleEffect(geometry.size.width / 200, anchor: .topLeading)
         }
         .aspectRatio(1, contentMode: .fit)
-        .accessibilityLabel("Frosty, FreezeMac refrigerator mascot")
+        .accessibilityLabel("Frosty, the refrigerator mascot")
         .allowsHitTesting(false)
     }
 

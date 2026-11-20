@@ -299,7 +299,23 @@ final class FreezeMacModel: ObservableObject {
     func requestPermission() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
+        // The App Sandbox suppresses the prompt above. Attempting an active event tap
+        // makes macOS show its own Accessibility prompt instead; the tap is discarded at once.
+        if let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: CGEventMask(1 << CGEventType.keyDown.rawValue),
+            callback: { _, _, event, _ in Unmanaged.passUnretained(event) },
+            userInfo: nil
+        ) {
+            CFMachPortInvalidate(tap)
+        }
         openAccessibilitySettings()
+    }
+
+    func revealAppInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
     }
 
     func openAccessibilitySettings() {
@@ -576,7 +592,7 @@ final class FreezeMacModel: ObservableObject {
 
         case .tapDisabled:
             endSession(
-                message: String(localized: "macOS disabled the input filter. FreezeMac unlocked immediately for safety.")
+                message: String(localized: "macOS disabled the input filter. Frosty unlocked immediately for safety.")
             )
         }
     }
@@ -640,7 +656,7 @@ final class FreezeMacModel: ObservableObject {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor in
-                    self?.stopForSafety(message: String(localized: "The Mac is going to sleep, so FreezeMac stopped the lock."))
+                    self?.stopForSafety(message: String(localized: "The Mac is going to sleep, so Frosty stopped the lock."))
                 }
             }
         )
@@ -652,7 +668,7 @@ final class FreezeMacModel: ObservableObject {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor in
-                    self?.stopForSafety(message: String(localized: "The user session changed, so FreezeMac stopped the lock."))
+                    self?.stopForSafety(message: String(localized: "The user session changed, so Frosty stopped the lock."))
                 }
             }
         )

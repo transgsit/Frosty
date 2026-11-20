@@ -12,7 +12,7 @@ final class FreezeMacAppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.activate(ignoringOtherApps: true)
         } else {
             DispatchQueue.main.async {
-                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "FreezeMac" {
+                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "Frosty" {
                     window.close()
                 }
             }
@@ -28,7 +28,7 @@ final class FreezeMacAppDelegate: NSObject, NSApplicationDelegate {
             if let openMainWindowHandler {
                 openMainWindowHandler()
             } else {
-                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "FreezeMac" {
+                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "Frosty" {
                     window.makeKeyAndOrderFront(nil)
                 }
             }

@@ -1,4 +1,4 @@
-/* FreezeMac — Korean */
+/* Frosty — Korean */
 
 "%@ (main)" = "%@ (주 화면)";
 "%@. Always on (10 s to 1 h), so the lock can never get stuck." = "%@. 항상 켜져 있어서(10초~1시간) 잠금이 풀리지 않는 일은 없어요.";
@@ -27,11 +27,11 @@
 "Displays to black out" = "화면 꺼짐 (청소용)";
 "Ends the keyboard lock session" = "키보드 잠금을 끝내요";
 "Freeze for" = "얼려 둘 시간";
-"FreezeMac" = "FreezeMac";
-"FreezeMac keeps running in the menu bar when this window is closed" = "창을 닫아도 메뉴 막대에서 계속 실행돼요";
-"FreezeMac quits completely when you close this window" = "이 창을 닫으면 FreezeMac이 완전히 종료돼요";
+"Frosty" = "Frosty";
+"Frosty keeps running in the menu bar when this window is closed" = "창을 닫아도 메뉴 막대에서 계속 실행돼요";
+"Frosty quits completely when you close this window" = "이 창을 닫으면 Frosty가 완전히 종료돼요";
 "Frosty blackout animation" = "Frosty 화면 꺼짐 연출";
-"Frosty, FreezeMac refrigerator mascot" = "FreezeMac의 냉장고 마스코트 Frosty";
+"Frosty, the refrigerator mascot" = "냉장고 마스코트 Frosty";
 "Frozen" = "꽁꽁 얼었어요";
 "General" = "일반";
 "Grant Permission" = "권한 허용";
@@ -62,7 +62,7 @@
 "Open main window at launch" = "앱 실행 시 메인 창 열기";
 "Press a key…" = "키 입력…";
 "Press shortcut…" = "단축키 입력…";
-"Quit FreezeMac" = "FreezeMac 종료";
+"Quit Frosty" = "Frosty 종료";
 "Screen" = "화면";
 "Screen blackout also locks the trackpad and mouse." = "화면을 가리면 트랙패드와 마우스도 함께 잠겨요.";
 "Selected displays" = "선택한 디스플레이";
@@ -72,18 +72,19 @@
 "Start Cleaning" = "청소 시작";
 "Start Freezing" = "얼리기 시작";
 "Tap-to-click counts as a click too." = "가볍게 탭하는 것도 클릭으로 세요.";
-"The Mac is going to sleep, so FreezeMac stopped the lock." = "Mac이 잠자기에 들어가서 FreezeMac이 잠금을 풀었어요.";
+"The Mac is going to sleep, so Frosty stopped the lock." = "Mac이 잠자기에 들어가서 Frosty가 잠금을 풀었어요.";
 "The input filter was created but could not be enabled. The keyboard was not locked." = "입력 차단을 켜지 못해서 키보드를 잠그지 않았어요.";
 "The unlock word must be 3–16 letters (A–Z) or digits. Fix it or turn the word unlock off." = "해제 단어는 영문(A–Z)이나 숫자로 3~16자여야 해요. 고치거나 단어 해제를 꺼 주세요.";
 "The unlock word must be 3–16 letters (A–Z) or digits. Fix it under Advanced options." = "해제 단어는 영문(A–Z)이나 숫자로 3~16자여야 해요. 고급 설정에서 고쳐 주세요.";
-"The user session changed, so FreezeMac stopped the lock." = "사용자 세션이 바뀌어서 FreezeMac이 잠금을 풀었어요.";
+"The user session changed, so Frosty stopped the lock." = "사용자 세션이 바뀌어서 Frosty가 잠금을 풀었어요.";
 "This shortcut cannot be used" = "이 단축키는 사용할 수 없어요";
 "Time remaining" = "남은 시간";
-"To lock the keyboard, allow FreezeMac in System Settings › Privacy & Security › Accessibility." = "키보드를 잠그려면 시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용에서 FreezeMac을 허용해 주세요.";
+"To lock the keyboard, allow Frosty in System Settings › Privacy & Security › Accessibility." = "키보드를 잠그려면 시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용에서 Frosty를 허용해 주세요.";
 "Turn on \"Lock trackpad and mouse\" to use click unlock." = "클릭으로 해제하려면 '트랙패드와 마우스도 잠그기'를 켜 주세요.";
-"Turn on FreezeMac under Privacy & Security › Accessibility. This window updates by itself once access is granted. If FreezeMac is already listed but still not working, remove it with the − button and add it again." = "개인정보 보호 및 보안 › 손쉬운 사용에서 FreezeMac을 켜 주세요. 허용하면 이 창이 저절로 바뀌어요. 목록에 이미 있는데 동작하지 않으면 − 버튼으로 지운 뒤 다시 추가해 주세요.";
+"Turn on Frosty under Privacy & Security › Accessibility. If Frosty is not in the list, click the + button and choose Frosty from Applications, or drag Frosty from Finder into the list. This window updates by itself once access is granted." = "개인정보 보호 및 보안 › 손쉬운 사용에서 Frosty를 켜 주세요. 목록에 Frosty가 없으면 + 버튼을 눌러 응용 프로그램 폴더의 Frosty를 고르거나, Finder에서 Frosty를 목록으로 끌어다 놓아 주세요. 허용하면 이 창이 저절로 바뀌어요.";
+"Show Frosty in Finder" = "Finder에서 Frosty 보기";
 "Turn on at least one way to unlock under Advanced options." = "고급 설정에서 해제 방법을 하나 이상 켜 주세요.";
-"Type %@" = "%@ 입력";
+"Type \"%@\"" = "\"%@\" 입력";
 "Type a word" = "단어 입력하기";
 "Uncovers every part of the screen so you can clean under the window too." = "창이 옮겨 다녀서 창이 있던 자리의 오염까지 확인이 가능해요.";
 "Unlock" = "해제";
@@ -100,9 +101,9 @@
 "black out chosen displays" = "선택한 디스플레이 가리기";
 "keyboard" = "키보드";
 "macOS could not create the input filter. Check the permission and try again." = "macOS가 입력 차단을 만들지 못했어요. 권한을 확인하고 다시 시도해 주세요.";
-"macOS could not lock the pointer. FreezeMac did not start cleaning mode for safety." = "macOS가 포인터를 잠그지 못해서 안전을 위해 시작하지 않았어요.";
-"macOS disabled the input filter. FreezeMac unlocked immediately for safety." = "macOS가 입력 차단을 꺼서 안전을 위해 바로 잠금을 풀었어요.";
-"macOS only lets apps you approve discard keyboard and trackpad input. FreezeMac does not record or store keystrokes." = "macOS는 허용한 앱만 키보드와 트랙패드 입력을 막을 수 있어요. FreezeMac은 입력한 내용을 기록하거나 저장하지 않아요.";
+"macOS could not lock the pointer. Frosty did not start cleaning mode for safety." = "macOS가 포인터를 잠그지 못해서 안전을 위해 시작하지 않았어요.";
+"macOS disabled the input filter. Frosty unlocked immediately for safety." = "macOS가 입력 차단을 꺼서 안전을 위해 바로 잠금을 풀었어요.";
+"macOS only lets apps you approve discard keyboard and trackpad input. Frosty does not record or store keystrokes." = "macOS는 허용한 앱만 키보드와 트랙패드 입력을 막을 수 있어요. Frosty는 입력한 내용을 기록하거나 저장하지 않아요.";
 "min" = "분";
 "s" = "초";
 "slide to unlock" = "밀어서 해제";
@@ -126,7 +127,7 @@
 "Open" = "열기";
 "Settings" = "설정";
 "Quit" = "종료";
-"Open the FreezeMac window" = "FreezeMac 창 열기";
+"Open the Frosty window" = "Frosty 창 열기";
 "Auto-unlock" = "자동 해제";
 "Launch at login" = "로그인 시 자동 실행";
 "Choose displays" = "가릴 화면";

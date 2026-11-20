@@ -1,4 +1,6 @@
-# FreezeMac 🧊
+# Frosty 🧊
+
+> 이전 이름은 FreezeMac이에요. 예전 릴리스 파일은 `FreezeMac.zip` 이름 그대로예요.
 
 맥북을 닦거나 아이에게 영상을 보여줄 때, **키보드와 트랙패드 입력만 꽁꽁 얼려주는** macOS 앱이에요.
 화면과 영상은 그대로 두고 입력만 막아요.
@@ -6,7 +8,7 @@
 *A macOS app that freezes keyboard and trackpad input while you clean your MacBook or let a child watch a video. The screen keeps working; only input is locked.*
 
 <p align="center">
-  <img src="docs/images/intro.png" width="32%" alt="Cleaning mode: the FreezeMac window">
+  <img src="docs/images/intro.png" width="32%" alt="Cleaning mode: the Frosty window">
   <img src="docs/images/kids.png" width="32%" alt="Watch mode: a video keeps playing while input is locked">
   <img src="docs/images/blackout.png" width="32%" alt="Blackout mode: Frosty hides in the notch and the screen goes dark">
 </p>
@@ -24,7 +26,7 @@
 - **해제 방법을 직접 설정:** 특정 키 길게 누르기, 단어 입력(기본 `NOW`), 트랙패드 연속 클릭. 단어는 키 위치로 확인해서 한글 입력 상태에서도 동작해요.
 - **자동 해제는 항상 켜져 있어요:** 10초~1시간 중 정한 시간이 지나면 무슨 일이 있어도 풀려요. 잠자기나 사용자 전환 때도 바로 풀려요.
 - **메뉴 막대 상주:** 메뉴 막대 아이콘으로 청소나 얼리기를 바로 시작하고, 남은 시간을 확인할 수 있어요.
-- **로그인 시 자동 실행:** 맥을 켤 때 FreezeMac이 자동으로 켜지도록 설정할 수 있어요.
+- **로그인 시 자동 실행:** 맥을 켤 때 Frosty가 자동으로 켜지도록 설정할 수 있어요.
 - **전역 단축키:** 어디서나 ⌃⌥⌘F를 눌러 잠금을 시작하거나 취소할 수 있어요.
 - **설정 창(⌘,):** 일반·잠금·해제·화면 옵션을 분리된 탭에서 편리하게 변경해요.
 - **한국어·영어 지원:** 맥 언어 설정을 따라가요.
@@ -36,8 +38,8 @@
    **완료**를 누른 뒤 시스템 설정 › 개인정보 보호 및 보안 아래쪽의 **"그래도 열기"**를 누르고 다시 열어요.
    터미널을 쓴다면 `xattr -dr com.apple.quarantine /Applications/FreezeMac.app` 로도 열 수 있어요.
    ※ 10월 2일 이전에 받은 파일에서 "손상되었다"는 메시지가 뜨면, 서명이 불완전했던 예전 파일이에요. 새로 받아 주세요.
-3. 앱 안내에 따라 **시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용**에서 FreezeMac을 허용해요.
-   입력을 막으려면 이 권한이 꼭 필요해요. FreezeMac은 입력 내용을 기록하거나 저장하지 않아요.
+3. 앱 안내에 따라 **시스템 설정 › 개인정보 보호 및 보안 › 손쉬운 사용**에서 Frosty를 허용해요.
+   입력을 막으려면 이 권한이 꼭 필요해요. Frosty는 입력 내용을 기록하거나 저장하지 않아요.
 
 **요구 사항:** macOS 14 Sonoma 이상, Apple Silicon(M1 이후) Mac.
 
@@ -48,11 +50,11 @@ Xcode 16 이상이 필요해요.
 ```sh
 xcodebuild -project FreezeMac.xcodeproj -scheme FreezeMac -configuration Release \
   -derivedDataPath .derivedData CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= build
-open .derivedData/Build/Products/Release/FreezeMac.app
+open .derivedData/Build/Products/Release/Frosty.app
 ```
 
 임시(ad-hoc) 서명이라 빌드할 때마다 서명이 바뀌어서, 손쉬운 사용 권한을 다시 켜야 할 수 있어요.
-목록에 FreezeMac이 있는데 동작하지 않으면 `−` 버튼으로 지우고 다시 추가해 주세요.
+목록에 Frosty가 있는데 동작하지 않으면 `−` 버튼으로 지우고 다시 추가해 주세요.
 
 ## 알아두세요
 

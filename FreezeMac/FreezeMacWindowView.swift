@@ -22,7 +22,7 @@ struct FreezeMacWindowView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Label("FreezeMac keeps running in the menu bar when this window is closed", systemImage: "menubar.arrow.up.rectangle")
+            Label("Frosty keeps running in the menu bar when this window is closed", systemImage: "menubar.arrow.up.rectangle")
                 .font(.caption)
                 .foregroundStyle(Frosty.inkSoft)
         }
@@ -47,7 +47,7 @@ struct FreezeMacWindowView: View {
                 .frame(width: 68, height: 68)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("FreezeMac")
+                Text("Frosty")
                     .font(.system(size: 25, weight: .bold, design: .rounded))
                 FrostyStatusChip(phase: model.phase, statusText: model.statusText)
             }
@@ -82,12 +82,12 @@ struct FreezeMacWindowView: View {
             Label("Allow access to lock input", systemImage: "hand.raised.fill")
                 .font(.headline)
 
-            Text("macOS only lets apps you approve discard keyboard and trackpad input. FreezeMac does not record or store keystrokes.")
+            Text("macOS only lets apps you approve discard keyboard and trackpad input. Frosty does not record or store keystrokes.")
                 .font(.subheadline)
                 .foregroundStyle(Frosty.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text("Turn on FreezeMac under Privacy & Security › Accessibility. This window updates by itself once access is granted. If FreezeMac is already listed but still not working, remove it with the − button and add it again.")
+            Text("Turn on Frosty under Privacy & Security › Accessibility. If Frosty is not in the list, click the + button and choose Frosty from Applications, or drag Frosty from Finder into the list. This window updates by itself once access is granted.")
                 .font(.caption)
                 .foregroundStyle(Frosty.inkSoft)
                 .fixedSize(horizontal: false, vertical: true)
@@ -103,6 +103,12 @@ struct FreezeMacWindowView: View {
                 }
                 .buttonStyle(FrostySecondaryButtonStyle())
             }
+
+            Button("Show Frosty in Finder") {
+                model.revealAppInFinder()
+            }
+            .buttonStyle(.link)
+            .font(.caption)
         }
         .frostyCard()
     }

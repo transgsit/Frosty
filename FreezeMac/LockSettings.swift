@@ -96,7 +96,7 @@ struct UnlockSettings: Codable, Equatable {
         }
         if wordEnabled {
             let typed = word.uppercased()
-            hints.append(UnlockHint(symbol: "character.cursor.ibeam", text: String(localized: "Type \(typed)")))
+            hints.append(UnlockHint(symbol: "character.cursor.ibeam", text: String(localized: "Type \"\(typed)\"")))
         }
         if clickEnabled && lockPointer {
             hints.append(UnlockHint(symbol: "cursorarrow.click.2", text: String(localized: "Click \(clickCount)×")))

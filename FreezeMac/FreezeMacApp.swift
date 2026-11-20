@@ -8,7 +8,7 @@ struct FreezeMacApp: App {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
-        Window("FreezeMac", id: "main") {
+        Window("Frosty", id: "main") {
             FreezeMacWindowView(model: model)
                 .frame(width: 420)
                 .onAppear {
@@ -21,7 +21,7 @@ struct FreezeMacApp: App {
         .commands {
             CommandGroup(replacing: .newItem) { }
             CommandGroup(replacing: .appTermination) {
-                Button(String(localized: "Quit FreezeMac")) {
+                Button(String(localized: "Quit Frosty")) {
                     model.quitApplication()
                 }
                 .keyboardShortcut("q")

@@ -27,13 +27,13 @@ enum InputBlockerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionMissing:
-            return String(localized: "To lock the keyboard, allow FreezeMac in System Settings › Privacy & Security › Accessibility.")
+            return String(localized: "To lock the keyboard, allow Frosty in System Settings › Privacy & Security › Accessibility.")
         case .tapCreationFailed:
             return String(localized: "macOS could not create the input filter. Check the permission and try again.")
         case .tapEnableFailed:
             return String(localized: "The input filter was created but could not be enabled. The keyboard was not locked.")
         case .pointerLockFailed:
-            return String(localized: "macOS could not lock the pointer. FreezeMac did not start cleaning mode for safety.")
+            return String(localized: "macOS could not lock the pointer. Frosty did not start cleaning mode for safety.")
         case .invalidUnlockWord:
             return String(localized: "The unlock word must be 3–16 letters (A–Z) or digits. Fix it or turn the word unlock off.")
         }

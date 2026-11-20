@@ -41,7 +41,7 @@ struct MenuBarView: View {
                 .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("FreezeMac")
+                Text("Frosty")
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(Frosty.ink)
                 FrostyStatusChip(phase: model.phase, statusText: model.statusText)
@@ -239,7 +239,7 @@ struct MenuBarView: View {
                     dismissPopup()
                     openMainWindow()
                 }
-                .help(String(localized: "Open the FreezeMac window"))
+                .help(String(localized: "Open the Frosty window"))
 
                 Spacer()
 
@@ -257,7 +257,7 @@ struct MenuBarView: View {
                     model.quitApplication()
                 }
                 .keyboardShortcut("q")
-                .help(String(localized: "Quit FreezeMac"))
+                .help(String(localized: "Quit Frosty"))
             }
         }
     }
