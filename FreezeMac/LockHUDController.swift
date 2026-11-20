@@ -13,25 +13,12 @@ final class LockHUDController {
         let hintsHeight = CGFloat(model.unlockHints.count) * 22 + (model.unlockHints.isEmpty ? 0 : 14 + 18)
         let size = CGSize(width: 390, height: 122 + hintsHeight + (model.pointerLocked ? 0 : 64))
         let frame = Self.frame(size: size, centered: model.blackoutEnabled)
-        let panel = NSPanel(
-            contentRect: frame,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
+        let panel = OverlayWindow.panel(
+            frame: frame,
+            level: model.blackoutEnabled || model.pointerLocked ? OverlayWindow.aboveBlackout : .floating,
+            clickThrough: model.pointerLocked
         )
-
         panel.contentView = NSHostingView(rootView: LockHUDView(model: model))
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = true
-        panel.hidesOnDeactivate = false
-        panel.isFloatingPanel = true
-        panel.becomesKeyOnlyIfNeeded = true
-        panel.level = model.blackoutEnabled || model.pointerLocked
-            ? NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)
-            : .floating
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
-        panel.ignoresMouseEvents = model.pointerLocked
 
         if fadeIn {
             panel.alphaValue = 0
@@ -56,8 +43,7 @@ final class LockHUDController {
         moveTask?.cancel()
         moveTask = nil
         lastCell = nil
-        panel?.orderOut(nil)
-        panel?.contentView = nil
+        OverlayWindow.dismiss(panel)
         panel = nil
     }
 

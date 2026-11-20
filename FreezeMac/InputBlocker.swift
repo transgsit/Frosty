@@ -2,227 +2,201 @@ import ApplicationServices
 import CoreGraphics
 import Foundation
 
+/// Swallows keyboard input, and optionally pointer input, for the whole login session
+/// through an active Quartz event tap, while watching for the configured ways out.
 final class InputBlocker {
-    var onSignal: ((InputSignal) -> Void)?
+    var onSignal: ((BlockerSignal) -> Void)?
 
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-    private var cursorIsDisconnected = false
-
-    private var triggers = UnlockTriggers()
-    private var recentKeyCodes: [Int64] = []
-    private var lastKeyTime: TimeInterval = 0
-    private var clickStreak = 0
-    private var lastClickTime: TimeInterval = 0
-
-    // Typing the unlock word or clicking repeatedly must be one continuous attempt.
-    private static let wordGap: TimeInterval = 5
-    private static let clickGap: TimeInterval = 1
+    private var tap: CFMachPort?
+    private var tapSource: CFRunLoopSource?
+    private var detachedCursor = false
+    private var detector = UnlockDetector()
 
     var isBlocking: Bool {
-        guard let eventTap else { return false }
-        return CGEvent.tapIsEnabled(tap: eventTap)
-    }
-
-    func start(lockPointer: Bool, triggers: UnlockTriggers = UnlockTriggers()) throws {
-        stop()
-        self.triggers = triggers
-
-        guard AXIsProcessTrusted() else {
-            throw InputBlockerError.permissionMissing
-        }
-
-        let mask = Self.eventMask(lockPointer: lockPointer)
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .defaultTap,
-            eventsOfInterest: mask,
-            callback: freezeMacEventTapCallback,
-            userInfo: Unmanaged.passUnretained(self).toOpaque()
-        ) else {
-            throw InputBlockerError.tapCreationFailed
-        }
-
-        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
-            CFMachPortInvalidate(tap)
-            throw InputBlockerError.tapCreationFailed
-        }
-
-        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
-
-        guard CGEvent.tapIsEnabled(tap: tap) else {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
-            CFMachPortInvalidate(tap)
-            throw InputBlockerError.tapEnableFailed
-        }
-
-        eventTap = tap
-        runLoopSource = source
-
-        if lockPointer {
-            let result = CGAssociateMouseAndMouseCursorPosition(0)
-            guard result == .success else {
-                stop()
-                throw InputBlockerError.pointerLockFailed
-            }
-            cursorIsDisconnected = true
-        }
-    }
-
-    func stop() {
-        if let eventTap {
-            CGEvent.tapEnable(tap: eventTap, enable: false)
-            CFMachPortInvalidate(eventTap)
-        }
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
-        }
-        eventTap = nil
-        runLoopSource = nil
-        resetUnlockTracking()
-
-        if cursorIsDisconnected {
-            _ = CGAssociateMouseAndMouseCursorPosition(1)
-            cursorIsDisconnected = false
-        }
+        tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false
     }
 
     deinit {
         stop()
     }
 
-    fileprivate func process(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let eventTap {
-                CGEvent.tapEnable(tap: eventTap, enable: true)
-            }
+    func start(lockPointer: Bool, triggers: UnlockTriggers = UnlockTriggers()) throws {
+        stop()
+        guard AXIsProcessTrusted() else { throw LockError.accessibilityNotGranted }
 
-            if eventTap == nil || !(eventTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false) {
-                DispatchQueue.main.async { [weak self] in
-                    self?.onSignal?(.tapDisabled)
-                }
-            }
+        try installTap(mask: Self.watchedEvents(includePointer: lockPointer))
+        detector = UnlockDetector(triggers: triggers)
 
-            return nil
+        guard isBlocking else {
+            stop()
+            throw LockError.filterInactive
         }
 
-        if type == .keyDown || type == .keyUp {
-            let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
-
-            if keyCode == triggers.holdKeyCode {
-                let isDown = type == .keyDown
-                DispatchQueue.main.async { [weak self] in
-                    self?.onSignal?(.unlockKeyChanged(isDown: isDown))
-                }
+        if lockPointer {
+            guard CGAssociateMouseAndMouseCursorPosition(0) == .success else {
+                stop()
+                throw LockError.pointerFreezeFailed
             }
+            detachedCursor = true
+        }
+    }
 
-            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-            if type == .keyDown && !isRepeat {
-                recordWordKey(keyCode)
-            }
-        } else if type == .leftMouseDown {
-            recordClick()
+    /// Safe to call at any time, including when nothing is running.
+    func stop() {
+        if let tap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
+        }
+        if let tapSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), tapSource, .commonModes)
+        }
+        tap = nil
+        tapSource = nil
+        detector = UnlockDetector()
+
+        if detachedCursor {
+            CGAssociateMouseAndMouseCursorPosition(1)
+            detachedCursor = false
+        }
+    }
+
+    // MARK: Tap
+
+    private func installTap(mask: CGEventMask) throws {
+        guard let port = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: mask,
+            callback: inputBlockerTapCallback,
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        ) else {
+            throw LockError.filterUnavailable
         }
 
+        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0) else {
+            CFMachPortInvalidate(port)
+            throw LockError.filterUnavailable
+        }
+
+        // The callback runs on the main run loop, so every signal below is main-thread work.
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+        CGEvent.tapEnable(tap: port, enable: true)
+        tap = port
+        tapSource = source
+    }
+
+    /// Every event that reaches here is dropped; the switch only decides what to report.
+    fileprivate func process(_ type: CGEventType, _ event: CGEvent) -> Unmanaged<CGEvent>? {
+        switch type {
+        case .tapDisabledByTimeout, .tapDisabledByUserInput:
+            // macOS turns slow or interrupted taps off. Try to take over again; if that
+            // fails the keyboard is live, so the session has to end.
+            if let tap {
+                CGEvent.tapEnable(tap: tap, enable: true)
+            }
+            if !isBlocking {
+                send(.filterLost)
+            }
+
+        case .keyDown, .keyUp:
+            let code = event.getIntegerValueField(.keyboardEventKeycode)
+            let pressed = type == .keyDown
+            if code == detector.holdKeyCode {
+                send(.holdKey(pressed: pressed))
+            }
+            let repeated = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            if pressed, !repeated, detector.registerKey(code) {
+                send(.unlockRequested)
+            }
+
+        case .leftMouseDown:
+            if detector.registerClick() {
+                send(.unlockRequested)
+            }
+
+        default:
+            break
+        }
         return nil
     }
 
-    private func resetUnlockTracking() {
-        triggers = UnlockTriggers()
-        recentKeyCodes.removeAll()
-        lastKeyTime = 0
-        clickStreak = 0
-        lastClickTime = 0
-    }
-
-    private func requestUnlock() {
-        recentKeyCodes.removeAll()
-        clickStreak = 0
+    private func send(_ signal: BlockerSignal) {
         DispatchQueue.main.async { [weak self] in
-            self?.onSignal?(.unlockRequested)
+            self?.onSignal?(signal)
         }
     }
 
-    /// Keeps the last N key positions (N = word length) and compares them to the word.
-    private func recordWordKey(_ keyCode: Int64) {
-        guard let word = triggers.wordKeyCodes else { return }
-
-        let now = ProcessInfo.processInfo.systemUptime
-        if now - lastKeyTime > Self.wordGap {
-            recentKeyCodes.removeAll()
-        }
-        lastKeyTime = now
-
-        recentKeyCodes.append(keyCode)
-        if recentKeyCodes.count > word.count {
-            recentKeyCodes.removeFirst(recentKeyCodes.count - word.count)
-        }
-
-        if recentKeyCodes == word {
-            requestUnlock()
-        }
-    }
-
-    private func recordClick() {
-        guard let required = triggers.clickCount else { return }
-
-        let now = ProcessInfo.processInfo.systemUptime
-        clickStreak = now - lastClickTime <= Self.clickGap ? clickStreak + 1 : 1
-        lastClickTime = now
-
-        if clickStreak >= required {
-            requestUnlock()
-        }
-    }
-
-    static func eventMask(lockPointer: Bool) -> CGEventMask {
-        var types: [CGEventType] = [
-            .keyDown,
-            .keyUp,
-            .flagsChanged,
-        ]
-
-        if lockPointer {
+    static func watchedEvents(includePointer: Bool) -> CGEventMask {
+        var types: [CGEventType] = [.keyDown, .keyUp, .flagsChanged]
+        if includePointer {
             types += [
-                .leftMouseDown,
-                .leftMouseUp,
-                .rightMouseDown,
-                .rightMouseUp,
-                .mouseMoved,
-                .leftMouseDragged,
-                .rightMouseDragged,
-                .scrollWheel,
-                .tabletPointer,
-                .tabletProximity,
-                .otherMouseDown,
-                .otherMouseUp,
-                .otherMouseDragged,
+                .mouseMoved, .scrollWheel,
+                .leftMouseDown, .leftMouseUp, .leftMouseDragged,
+                .rightMouseDown, .rightMouseUp, .rightMouseDragged,
+                .otherMouseDown, .otherMouseUp, .otherMouseDragged,
+                .tabletPointer, .tabletProximity,
             ]
         }
-
-        let standardMask = types.reduce(CGEventMask(0)) { partial, type in
-            partial | (CGEventMask(1) << type.rawValue)
-        }
-
-        // Brightness, volume, and media keys arrive as NX_SYSDEFINED events.
-        // CoreGraphics does not expose a named Swift CGEventType case for them,
-        // but the documented raw event type is 14.
-        let systemDefinedMask = CGEventMask(1) << 14
-        return standardMask | systemDefinedMask
+        let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
+        // Type 14 (NX_SYSDEFINED) carries brightness, volume and media keys; CGEventType has no case for it.
+        return mask | (CGEventMask(1) << 14)
     }
 }
 
-private func freezeMacEventTapCallback(
-    proxy: CGEventTapProxy,
-    type: CGEventType,
-    event: CGEvent,
-    userInfo: UnsafeMutableRawPointer?
-) -> Unmanaged<CGEvent>? {
-    guard let userInfo else {
-        return Unmanaged.passUnretained(event)
+private let inputBlockerTapCallback: CGEventTapCallBack = { _, type, event, userInfo in
+    guard let userInfo else { return Unmanaged.passUnretained(event) }
+    return Unmanaged<InputBlocker>.fromOpaque(userInfo).takeUnretainedValue().process(type, event)
+}
+
+// MARK: - Unlock detection
+
+/// Recognises the unlock word and the click streak from the raw input the tap sees.
+struct UnlockDetector {
+    // A word or a click streak has to arrive as one continuous attempt.
+    static let wordPause: TimeInterval = 5
+    static let clickPause: TimeInterval = 1
+
+    let holdKeyCode: Int64?
+    private let word: [Int64]?
+    private let clicksNeeded: Int?
+
+    private var typed: [Int64] = []
+    private var lastKeyAt: TimeInterval = 0
+    private var clicks = 0
+    private var lastClickAt: TimeInterval = 0
+
+    init(triggers: UnlockTriggers = UnlockTriggers()) {
+        holdKeyCode = triggers.holdKeyCode
+        word = triggers.wordKeyCodes
+        clicksNeeded = triggers.clickCount
     }
-    let blocker = Unmanaged<InputBlocker>.fromOpaque(userInfo).takeUnretainedValue()
-    return blocker.process(type: type, event: event)
+
+    /// True when the latest key positions spell the unlock word.
+    mutating func registerKey(_ code: Int64, at now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> Bool {
+        guard let word else { return false }
+        if now - lastKeyAt > Self.wordPause {
+            typed.removeAll()
+        }
+        lastKeyAt = now
+        typed = Array((typed + [code]).suffix(word.count))
+        guard typed == word else { return false }
+        clearProgress()
+        return true
+    }
+
+    /// True when enough clicks landed close enough together.
+    mutating func registerClick(at now: TimeInterval = ProcessInfo.processInfo.systemUptime) -> Bool {
+        guard let clicksNeeded else { return false }
+        clicks = now - lastClickAt <= Self.clickPause ? clicks + 1 : 1
+        lastClickAt = now
+        guard clicks >= clicksNeeded else { return false }
+        clearProgress()
+        return true
+    }
+
+    private mutating func clearProgress() {
+        typed.removeAll()
+        clicks = 0
+    }
 }

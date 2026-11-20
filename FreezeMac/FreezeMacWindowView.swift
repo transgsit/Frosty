@@ -168,7 +168,7 @@ struct FreezeMacWindowView: View {
             // A child watching a video needs the screen visible, so this mode hides the option.
             if model.preset != .kids {
                 FrostyToggleRow(
-                    title: String(localized: "Black out displays"),
+                    title: String(localized: "Turn screens dark"),
                     isOn: $model.blackoutScreen,
                     isDisabled: model.phase.isBusy
                 )
@@ -235,7 +235,7 @@ struct FreezeMacWindowView: View {
                     model.beginCountdown()
                 } label: {
                     Label(
-                        model.preset == .kids ? String(localized: "Start Freezing") : String(localized: "Start Cleaning"),
+                        model.preset == .kids ? String(localized: "Start Freezing") : String(localized: "Lock for Cleaning"),
                         systemImage: model.preset == .kids ? "snowflake" : "sparkles"
                     )
                 }

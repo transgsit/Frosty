@@ -175,7 +175,7 @@ struct MenuBarView: View {
                 // 3. Blackout toggle (cleaning mode only)
                 if model.preset != .kids {
                     FrostyToggleRow(
-                        title: String(localized: "Black out displays"),
+                        title: String(localized: "Turn screens dark"),
                         isOn: $model.blackoutScreen,
                         isDisabled: model.phase.isBusy
                     )
@@ -196,7 +196,7 @@ struct MenuBarView: View {
                     model.beginCountdown()
                 } label: {
                     Label(
-                        model.preset == .kids ? String(localized: "Start Freezing") : String(localized: "Start Cleaning"),
+                        model.preset == .kids ? String(localized: "Start Freezing") : String(localized: "Lock for Cleaning"),
                         systemImage: model.preset == .kids ? "snowflake" : "sparkles"
                     )
                 }

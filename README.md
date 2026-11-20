@@ -63,4 +63,4 @@ open .derivedData/Build/Products/Release/Frosty.app
 
 ## 크레딧
 
-입력 차단의 바탕은 MIT 라이선스로 공개된 [CleanKeys](https://github.com/zsomborn0/CleanKeys)의 코드를 고쳐 쓴 거예요. 자세한 내용은 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)를 봐 주세요.
+Developed by Shining Star

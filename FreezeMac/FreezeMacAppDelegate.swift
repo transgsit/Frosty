@@ -4,6 +4,11 @@ import AppKit
 final class FreezeMacAppDelegate: NSObject, NSApplicationDelegate {
     var openMainWindowHandler: (() -> Void)?
 
+    /// The app's own window; overlay panels share the process but are never "the window".
+    private var mainWindows: [NSWindow] {
+        NSApplication.shared.windows.filter { !($0 is NSPanel) && $0.title == "Frosty" }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.regular)
 
@@ -12,9 +17,7 @@ final class FreezeMacAppDelegate: NSObject, NSApplicationDelegate {
             NSApplication.shared.activate(ignoringOtherApps: true)
         } else {
             DispatchQueue.main.async {
-                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "Frosty" {
-                    window.close()
-                }
+                self.mainWindows.forEach { $0.close() }
             }
         }
     }
@@ -28,9 +31,7 @@ final class FreezeMacAppDelegate: NSObject, NSApplicationDelegate {
             if let openMainWindowHandler {
                 openMainWindowHandler()
             } else {
-                for window in NSApplication.shared.windows where !(window is NSPanel) && window.title == "Frosty" {
-                    window.makeKeyAndOrderFront(nil)
-                }
+                mainWindows.forEach { $0.makeKeyAndOrderFront(nil) }
             }
         }
         NSApplication.shared.activate(ignoringOtherApps: true)

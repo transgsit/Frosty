@@ -318,11 +318,14 @@ final class FreezeMacModel: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
     }
 
+    private static let accessibilitySettingsURL = URL(
+        string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+    )
+
     func openAccessibilitySettings() {
-        guard let url = URL(
-            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-        ) else { return }
-        NSWorkspace.shared.open(url)
+        if let url = Self.accessibilitySettingsURL {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     func syncHotKey() {
@@ -446,23 +449,8 @@ final class FreezeMacModel: ObservableObject {
     func endSession(message: String? = nil) {
         guard phase == .locked || phase == .ending else { return }
         phase = .ending
-
-        stopCountdownEscapeMonitoring()
-        countdownHUDController.closeImmediately()
-
-        countdownTask?.cancel()
-        sessionTimerTask?.cancel()
-        escapeHoldTask?.cancel()
-        countdownTask = nil
-        sessionTimerTask = nil
-        escapeHoldTask = nil
-
-        inputBlocker.stop()
-        pointerShieldController.hide()
-        blackoutController.hide()
-        hudController.close()
+        tearDownLock()
         hudModel = nil
-
         remainingSeconds = 0
         phase = .idle
         if let message {
@@ -470,11 +458,31 @@ final class FreezeMacModel: ObservableObject {
         }
     }
 
+    /// Releases everything a lock or countdown holds. On quit there is no time to animate.
+    private func tearDownLock(animated: Bool = true) {
+        for task in [countdownTask, sessionTimerTask, escapeHoldTask] {
+            task?.cancel()
+        }
+        countdownTask = nil
+        sessionTimerTask = nil
+        escapeHoldTask = nil
+
+        stopCountdownEscapeMonitoring()
+        countdownHUDController.closeImmediately()
+        inputBlocker.stop()
+        pointerShieldController.hide()
+        blackoutController.hide(animated: animated)
+        hudController.close()
+    }
+
     func quitApplication() {
-        if phase == .locked || phase == .ending {
+        switch phase {
+        case .locked, .ending:
             endSession()
-        } else if case .countdown = phase {
+        case .countdown:
             cancelCountdown()
+        case .idle:
+            break
         }
         NSApplication.shared.terminate(nil)
     }
@@ -483,7 +491,7 @@ final class FreezeMacModel: ObservableObject {
         let triggers = UnlockTriggers(settings: settings, lockPointer: lockPointer)
         if settings.wordEnabled && triggers.wordKeyCodes == nil {
             phase = .idle
-            errorMessage = InputBlockerError.invalidUnlockWord.errorDescription
+            errorMessage = LockError.invalidUnlockWord.errorDescription
             return
         }
 
@@ -497,19 +505,14 @@ final class FreezeMacModel: ObservableObject {
         )
         activeHoldSeconds = options.holdSeconds
 
+        // start() only returns once the tap is confirmed active, so no lock UI appears
+        // unless input is really being swallowed.
         do {
             try inputBlocker.start(lockPointer: options.lockPointer, triggers: options.triggers)
         } catch {
             phase = .idle
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             refreshPermission()
-            return
-        }
-
-        guard inputBlocker.isBlocking else {
-            inputBlocker.stop()
-            phase = .idle
-            errorMessage = InputBlockerError.tapEnableFailed.localizedDescription
             return
         }
 
@@ -575,36 +578,36 @@ final class FreezeMacModel: ObservableObject {
         }
     }
 
-    private func handle(signal: InputSignal) {
+    private func handle(signal: BlockerSignal) {
         guard phase == .locked else { return }
 
         switch signal {
+        case .holdKey(let pressed):
+            holdKeyChanged(pressed: pressed)
         case .unlockRequested:
             endSession()
-
-        case .unlockKeyChanged(let isDown):
-            if isDown {
-                startEscapeHoldIfNeeded()
-            } else {
-                escapeHoldTask?.cancel()
-                escapeHoldTask = nil
-            }
-
-        case .tapDisabled:
+        case .filterLost:
             endSession(
                 message: String(localized: "macOS disabled the input filter. Frosty unlocked immediately for safety.")
             )
         }
     }
 
-    private func startEscapeHoldIfNeeded() {
+    /// Holding the unlock key for the configured time ends the lock; letting go early resets it.
+    private func holdKeyChanged(pressed: Bool) {
+        guard pressed else {
+            escapeHoldTask?.cancel()
+            escapeHoldTask = nil
+            return
+        }
         guard escapeHoldTask == nil else { return }
 
+        let seconds = activeHoldSeconds
         escapeHoldTask = Task { [weak self] in
-            guard let seconds = self?.activeHoldSeconds else { return }
-            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
-            guard !Task.isCancelled else { return }
-            self?.endSession()
+            try? await Task.sleep(for: .seconds(seconds))
+            if !Task.isCancelled {
+                self?.endSession()
+            }
         }
     }
 
@@ -648,44 +651,32 @@ final class FreezeMacModel: ObservableObject {
     }
 
     private func observeSafetyNotifications() {
-        let workspaceCenter = NSWorkspace.shared.notificationCenter
-        notificationTokens.append(
-            workspaceCenter.addObserver(
-                forName: NSWorkspace.willSleepNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor in
-                    self?.stopForSafety(message: String(localized: "The Mac is going to sleep, so Frosty stopped the lock."))
+        let reasons: [(Notification.Name, String)] = [
+            (NSWorkspace.willSleepNotification,
+             String(localized: "The Mac is going to sleep, so Frosty stopped the lock.")),
+            (NSWorkspace.sessionDidResignActiveNotification,
+             String(localized: "The user session changed, so Frosty stopped the lock.")),
+        ]
+        let workspace = NSWorkspace.shared.notificationCenter
+        for (name, message) in reasons {
+            notificationTokens.append(
+                workspace.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                    Task { @MainActor in
+                        self?.stopForSafety(message: message)
+                    }
                 }
-            }
-        )
+            )
+        }
 
-        notificationTokens.append(
-            workspaceCenter.addObserver(
-                forName: NSWorkspace.sessionDidResignActiveNotification,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor in
-                    self?.stopForSafety(message: String(localized: "The user session changed, so Frosty stopped the lock."))
-                }
-            }
-        )
-
+        // The process may exit before a scheduled task runs, so release input right here.
         notificationTokens.append(
             NotificationCenter.default.addObserver(
                 forName: NSApplication.willTerminateNotification,
                 object: nil,
                 queue: .main
             ) { [weak self] _ in
-                Task { @MainActor in
-                    self?.inputBlocker.stop()
-                    self?.pointerShieldController.hide()
-                    self?.blackoutController.hide(animated: false)
-                    self?.hudController.close()
-                    self?.stopCountdownEscapeMonitoring()
-                    self?.countdownHUDController.closeImmediately()
+                MainActor.assumeIsolated {
+                    self?.tearDownLock(animated: false)
                 }
             }
         )
